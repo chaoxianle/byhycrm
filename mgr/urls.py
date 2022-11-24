@@ -1,6 +1,8 @@
 from django.urls import path
-from mgr import customer
+from mgr import customer,sigin_in_out
 
 urlpatterns = [
     path('customers',customer.dispatcher),
+    path('signin',sigin_in_out.signin),
+    path('signin',sigin_in_out.signout),
 ]

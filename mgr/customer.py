@@ -3,6 +3,22 @@ from common.models import Customer
 import json
 
 def dispatcher(request):
+    # 根据session判断用户是否是登录的管理员用户
+    if 'usertype' not in request.session:
+        return JsonResponse({
+                                'ret':302,
+                                'msg':'未登录',
+                                'redirect':'/mgr/sign.html'},
+                                status=302
+                            )
+    if request.session != 'mgr':
+        return JsonResponse({
+                               'ret':'302',
+                               'msg': '用户非mgr类型',
+                               'redirect': '/mgr/sign.html'},
+                               status=302
+                            )
+
     # 将请求参数统一放入request 的 params 属性中，方便后续处理
 
     # GET请求 参数在url中，同过request 对象的 GET属性获取
@@ -27,7 +43,7 @@ def dispatcher(request):
     else:
         return JsonResponse({'ret': 1,'msg': '不支持该类型http请求'})
 
-# 获取所有客户信息
+# 获取所有客户信息接口
 def listcustomers(request):
     # 返回一个 QuerySet 对象 ，包含所有的表记录
     qs = Customer.objects.values()
@@ -37,7 +53,7 @@ def listcustomers(request):
     retlist = list(qs)
     return JsonResponse({'ret': 0, 'retlist': retlist})
 
-# 新增客户信息
+# 新增客户信息接口
 def addcustomer(request):
 
     info = request.params['data']
@@ -49,7 +65,7 @@ def addcustomer(request):
                             address=info['address'])
     return JsonResponse({'ret':0,'id':record.id})
 
-# 修改客户信息
+# 修改客户信息接口
 def modifycustomer(request):
     # 从请求消息中 获取修改客户的信息
     # 找到该客户，并且进行修改操作
@@ -73,7 +89,7 @@ def modifycustomer(request):
     customer.save()
     return JsonResponse({'ret':0})
 
-# 删除客户信息
+# 删除客户信息接口
 def deletecustomer(request):
     # 找到客户id并进行删除
     customerid = request.params['id']
