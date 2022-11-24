@@ -54,7 +54,7 @@ def modifycustomer(request):
     # 从请求消息中 获取修改客户的信息
     # 找到该客户，并且进行修改操作
     customerid = request.params['id']
-    newdata = request.params['data']
+    newdata = request.params['newdata']
     # 根据 id 从数据库中找到相应的客户记录
     try:
         customer = Customer.objects.get(id=customerid)
