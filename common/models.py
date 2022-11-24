@@ -34,4 +34,4 @@ class Order(models.Model):
 # 定义药品的订单表
 class OrderMedicine(models.Model):
     order = models.ForeignKey(Order,on_delete=models.PROTECT)
-    medicine =
+    # medicine =
