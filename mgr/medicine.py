@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from common.models import CommonCustomer
+from common.models import CommonMedicine
 import json
 
 def dispatcher(request):
@@ -18,82 +18,56 @@ def dispatcher(request):
                                'redirect': '/mgr/sign.html'},
                                status=302
                             )
+
     # 将请求参数统一放入request 的 params 属性中，方便后续处理
 
     # GET请求 参数在url中，同过request 对象的 GET属性获取
     if request.method == 'GET':
-        # 根据不同的action分派给不同的函数进行处理
         request.params = request.GET
+
+        # 根据接口，POST/PUT/DELETE 请求的消息体都是 json格式
+        request.params = json.loads(request.body)
         # 根据不同的action分派给不同的函数进行处理
-        action= request.params['action']
-        if action == 'list_customer':
-            return listcustomers(request)
-        else:
-            return JsonResponse({'ret': 2, 'msg': '参数错误'})
-    # 根据接口，POST/PUT/DELETE 请求的消息体都是 json格式
-    request.params = json.loads(request.body)
-    # 根据不同的action分派给不同的函数进行处理
-    action = request.params['action']
-    # 获取客户id来判断客户是否存在
-    Cid = request.params['id']
-    Cids = []
-    for id in CommonCustomer.objects.values('id'):
-        for key,value in id.items():
-            Cids.append(value)
+        action = request.params['action']
 
-    # POST请求 参数 从 request 对象的 body 属性中获取
-    if request.method == 'POST':
+        # POST请求 参数 从 request 对象的 body 属性中获取
+        if request.method == 'POST':
+            if action == 'add_customer':
+                return addmedicine(request)
 
-        if action == 'add_customer':
-            return addcustomer(request)
-        else:
-            return JsonResponse({'ret': 2, 'msg': '参数错误'})
-
-    # PUT请求 参数 从 request 对象的 body 属性中获取
-    if request.method == 'PUT':
-        if Cid in Cids:
+        # PUT请求 参数 从 request 对象的 body 属性中获取
+        if request.method == 'PUT':
             if action == 'modify_customer':
-                return deletecustomer(request)
-            else:
-                return JsonResponse({'ret': 2, 'msg': '参数错误'})
-        else:
-            return JsonResponse({'ret': 3, 'msg': f'id为{Cid}的客户不存在'})
+                return modifymedicine(request)
 
-    # DELETE请求 参数 从 request 对象的 body 属性中获取
-    if request.method == 'DELETE':
-        if Cid in Cids:
+        # DELETE请求 参数 从 request 对象的 body 属性中获取
+        if request.method == 'DELETE':
             if action == 'del_customer':
-                return deletecustomer(request)
-            else:
-                return JsonResponse({'ret': 2, 'msg': '参数错误'})
+                return deletemedicine(request)
         else:
-            return JsonResponse({'ret': 3, 'msg': f'id为{Cid}的客户不存在'})
-    else:
-        return JsonResponse({'ret': 1,'msg': '不支持该类型http请求'})
+            return JsonResponse({'ret': 1, 'msg': '不支持该类型http请求'})
 
-
-
-# 获取所有客户信息接口
-def listcustomers(request):
+# 获取所有药品信息接口
+def listmedicines(request):
     # 返回一个 QuerySet 对象 ，包含所有的表记录
-    qs = CommonCustomer.objects.values()
+    qs = CommonMedicine.objects.values()
     # 统计接口列表数量
-    count = CommonCustomer.objects.count()
+    count = CommonMedicine.objects.count()
     # 将 QuerySet 对象 转化为 list 类型
     # 否则不能 被 转化为 JSON 字符串
     retlist = list(qs)
     return JsonResponse({'ret': 0, 'retlist': retlist,'total':count})
 
-# 新增客户信息接口
-def addcustomer(request):
+# 新增药品信息接口
+def addmedicine(request):
 
     info = request.params['data']
     # 从请求消息中 获取要添加客户的信息
     # 并且插入到数据库中
     # 返回值 就是对应插入记录的对象
-    record = CommonCustomer.objects.create(name=info['name'],
-                            phonenumber=info['phonenumber'],
-                            address=info['address'])
+    record = CommonMedicine.objects.create(name=info['name'],
+                            phonenumber=info['desc'],
+                            address=info['sn'])
     return JsonResponse({'ret':0,'id':record.id})
 
 # 修改客户信息接口
@@ -104,8 +78,8 @@ def modifycustomer(request):
     newdata = request.params['newdata']
     # 根据 id 从数据库中找到相应的客户记录
     try:
-        customer = CommonCustomer.objects.get(id=customerid)
-    except CommonCustomer.DoesNotExist:
+        customer = CommonMedicine.objects.get(id=customerid)
+    except CommonMedicine.DoesNotExist:
         return {
                     'ret': 1,
                     'msg': f'id为{customerid}的客户名不存在'
@@ -126,8 +100,8 @@ def deletecustomer(request):
     customerid = request.params['id']
     # 根据 id 从数据库中找到相应的客户记录
     try:
-        customer = CommonCustomer.objects.get(id=customerid)
-    except CommonCustomer.DoesNotExist:
+        customer = CommonMedicine.objects.get(id=customerid)
+    except CommonMedicine.DoesNotExist:
         return {
             'ret': 1,
             'msg': f'id为{customerid}的客户名不存在'

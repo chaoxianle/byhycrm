@@ -1,12 +1,12 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from common.models import Customer
+from common.models import CommonCustomer
 
 # Create your views here.
 
 def listcustomers(request):
     # 返回一个 QuerySet 对象 ，包含所有的表记录
-    qs = Customer.objects.values()
+    qs = CommonCustomer.objects.values()
     # 检查url中是否有参数phonenumber,如果没有就返回None
     ph = request.GET.get('phonenumber',None)
     # 如果有，添加过滤条件
