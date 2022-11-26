@@ -24,54 +24,54 @@ def dispatcher(request):
     if request.method == 'GET':
         # 根据不同的action分派给不同的函数进行处理
         request.params = request.GET
-        # 根据不同的action分派给不同的函数进行处理
-        action= request.params['action']
-        if action == 'list_customer':
-            return listcustomers(request)
-        else:
-            return JsonResponse({'ret': 2, 'msg': '参数错误'})
+
     # 根据接口，POST/PUT/DELETE 请求的消息体都是 json格式
-    request.params = json.loads(request.body)
+    elif request.method in ['POST', 'PUT', 'DELETE']:
+        # 根据接口，POST/PUT/DELETE 请求的消息体都是 json格式
+        request.params = json.loads(request.body)
+
     # 根据不同的action分派给不同的函数进行处理
     action = request.params['action']
-    # 获取客户id来判断客户是否存在
-    Cid = request.params['id']
-    Cids = []
-    for id in CommonCustomer.objects.values('id'):
-        for key,value in id.items():
-            Cids.append(value)
+    if action == 'list_customer':
+        return listcustomers(request)
 
-    # POST请求 参数 从 request 对象的 body 属性中获取
-    if request.method == 'POST':
-
-        if action == 'add_customer':
+    elif action == 'add_customer':
+        # 获取客户name来判断客户是否存在
+        Cname = request.params['data']['name']
+        Cnames = []
+        for name in CommonCustomer.objects.values('name'):
+            for key,value in name.items():
+                Cnames.append(value)
+        if Cname not in Cnames:
             return addcustomer(request)
         else:
-            return JsonResponse({'ret': 2, 'msg': '参数错误'})
+            return JsonResponse({"ret": 3,"msg": "客户名名已经存在"})
 
-    # PUT请求 参数 从 request 对象的 body 属性中获取
-    if request.method == 'PUT':
+    elif action == 'modify_customer':
+        # 获取客户id来判断客户是否存在
+        Cid = request.params['id']
+        Cids = []
+        for id in CommonCustomer.objects.values('id'):
+            for key, value in id.items():
+                Cids.append(value)
         if Cid in Cids:
-            if action == 'modify_customer':
-                return deletecustomer(request)
-            else:
-                return JsonResponse({'ret': 2, 'msg': '参数错误'})
+            return modifycustomer(request)
         else:
-            return JsonResponse({'ret': 3, 'msg': f'id为{Cid}的客户不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
 
-    # DELETE请求 参数 从 request 对象的 body 属性中获取
-    if request.method == 'DELETE':
+    elif action == 'del_customer':
+        # 获取客户id来判断客户是否存在
+        Cid = request.params['id']
+        Cids = []
+        for id in CommonCustomer.objects.values('id'):
+            for key, value in id.items():
+                Cids.append(value)
         if Cid in Cids:
-            if action == 'del_customer':
-                return deletecustomer(request)
-            else:
-                return JsonResponse({'ret': 2, 'msg': '参数错误'})
+            return deletecustomer(request)
         else:
-            return JsonResponse({'ret': 3, 'msg': f'id为{Cid}的客户不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
     else:
-        return JsonResponse({'ret': 1,'msg': '不支持该类型http请求'})
-
-
+        return JsonResponse({'ret': 1, 'msg': '参数错误'})
 
 # 获取所有客户信息接口
 def listcustomers(request):
@@ -103,13 +103,7 @@ def modifycustomer(request):
     customerid = request.params['id']
     newdata = request.params['newdata']
     # 根据 id 从数据库中找到相应的客户记录
-    try:
-        customer = CommonCustomer.objects.get(id=customerid)
-    except CommonCustomer.DoesNotExist:
-        return {
-                    'ret': 1,
-                    'msg': f'id为{customerid}的客户名不存在'
-                }
+    customer = CommonCustomer.objects.get(id=customerid)
     if 'name' in newdata:
         customer.name = newdata['name']
     if 'phonenumber' in newdata:
@@ -125,13 +119,7 @@ def deletecustomer(request):
     # 找到客户id并进行删除
     customerid = request.params['id']
     # 根据 id 从数据库中找到相应的客户记录
-    try:
-        customer = CommonCustomer.objects.get(id=customerid)
-    except CommonCustomer.DoesNotExist:
-        return {
-            'ret': 1,
-            'msg': f'id为{customerid}的客户名不存在'
-        }
+    customer = CommonCustomer.objects.get(id=customerid)
     # delete 方法就将该记录从数据库中删除了
     customer.delete()
     return JsonResponse({'ret':0})
