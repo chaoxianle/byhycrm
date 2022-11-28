@@ -6,4 +6,5 @@ urlpatterns = [
     path('signin',sigin_in_out.signin),
     path('signin',sigin_in_out.signout),
     path('medicines',medicine.dispatcher),
+
 ]

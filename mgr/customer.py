@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from common.models import CommonCustomer
+from django.core.paginator import Paginator
 import json
 
 def dispatcher(request):
@@ -61,7 +62,7 @@ def dispatcher(request):
             else:
                 return JsonResponse({'ret': 3, 'msg': '客户名已经存在'})
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Mid}的客户名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
 
     elif action == 'del_customer':
         # 获取客户id来判断客户是否存在
@@ -81,12 +82,26 @@ def dispatcher(request):
 def listcustomers(request):
     # 返回一个 QuerySet 对象 ，包含所有的表记录
     qs = CommonCustomer.objects.values()
-    # 统计接口列表数量
-    count = CommonCustomer.objects.count()
     # 将 QuerySet 对象 转化为 list 类型
     # 否则不能 被 转化为 JSON 字符串
     retlist = list(qs)
-    return JsonResponse({'ret': 0, 'retlist': retlist,'total':count})
+    # 默认跳转到第一页
+    page = request.GET.get('pagenum','1')
+    # 默认展示10条数据
+    size = request.GET.get('pagesize','10')
+
+    page_obj = Paginator(retlist, size)
+    page_data = page_obj.get_page(page)
+    res = page_data.object_list
+    # 获取列表长度
+    count = len(res)
+    # 统计数据库有多少条数据
+    maxsize = CommonCustomer.objects.count()
+    pagesize = request.params['pagesize']
+    if int(pagesize) <= int(maxsize):
+        return JsonResponse({'ret': 0, 'retlist': res,'total':count})
+    else:
+        return JsonResponse({'ret': 4, 'msg': f'参数错误,当前最大数量为{count}'})
 
 # 新增客户信息接口
 def addcustomer(request):
