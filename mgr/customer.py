@@ -50,14 +50,18 @@ def dispatcher(request):
     elif action == 'modify_customer':
         # 获取客户id来判断客户是否存在
         Cid = request.params['id']
-        Cids = []
-        for id in CommonCustomer.objects.values('id'):
-            for key, value in id.items():
-                Cids.append(value)
-        if Cid in Cids:
-            return modifycustomer(request)
+        Cname = request.params['newdata']['name']
+        Customers = []
+        for newdata in CommonCustomer.objects.values():
+            for key, value in newdata.items():
+                Customers.append(value)
+        if Cid in Customers:
+            if Cname not in Customers:
+                return modifycustomer(request)
+            else:
+                return JsonResponse({'ret': 3, 'msg': '客户名已经存在'})
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{Mid}的客户名不存在'})
 
     elif action == 'del_customer':
         # 获取客户id来判断客户是否存在

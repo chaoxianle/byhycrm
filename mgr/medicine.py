@@ -33,94 +33,98 @@ def dispatcher(request):
 
     # 根据不同的action分派给不同的函数进行处理
     action = request.params['action']
-    if action == 'list_customer':
-        return listcustomers(request)
+    if action == 'list_medicine':
+        return listmedicines(request)
 
-    elif action == 'add_customer':
-        # 获取客户name来判断客户是否存在
+    elif action == 'add_medicine':
+        # 获取药品name来判断药品是否存在
         Cname = request.params['data']['name']
         Cnames = []
-        for name in CommonCustomer.objects.values('name'):
+        for name in CommonMedicine.objects.values('name'):
             for key, value in name.items():
                 Cnames.append(value)
         if Cname not in Cnames:
-            return addcustomer(request)
+            return addmedicine(request)
         else:
-            return JsonResponse({"ret": 3, "msg": "客户名名已经存在"})
+            return JsonResponse({"ret": 3, "msg": "药品名已经存在"})
 
-    elif action == 'modify_customer':
-        # 获取客户id来判断客户是否存在
-        Cid = request.params['id']
-        Cids = []
-        for id in CommonCustomer.objects.values('id'):
-            for key, value in id.items():
-                Cids.append(value)
-        if Cid in Cids:
-            return modifycustomer(request)
+    elif action == 'modify_medicine':
+        # 获取药品id来判断药品是否存在
+        Mid = request.params['id']
+        Mname = request.params['newdata']['name']
+        Medicines = []
+        for newdata in CommonMedicine.objects.values():
+            for key, value in newdata.items():
+                Medicines.append(value)
+        if Mid in Medicines:
+            if Mname not in  Medicines:
+                return modifymedicine(request)
+            else:
+                return JsonResponse({'ret': 3, 'msg':'药品名已经存在'})
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{Mid}的药品名不存在'})
 
-    elif action == 'del_customer':
-        # 获取客户id来判断客户是否存在
-        Cid = request.params['id']
-        Cids = []
-        for id in CommonCustomer.objects.values('id'):
+    elif action == 'del_medicine':
+        # 获取药品id来判断客户是否存在
+        Mid = request.params['id']
+        Mids = []
+        for id in CommonMedicine.objects.values('id'):
             for key, value in id.items():
-                Cids.append(value)
-        if Cid in Cids:
-            return deletecustomer(request)
+                Mids.append(value)
+        if Mid in Mids:
+            return deletemedicine(request)
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{Mid}的药品名不存在'})
     else:
         return JsonResponse({'ret': 1, 'msg': '参数错误'})
 
-# 获取所有客户信息接口
+# 获取所有药品信息接口
 def listmedicines(request):
     # 返回一个 QuerySet 对象 ，包含所有的表记录
-    qs = CommonCustomer.objects.values()
+    qs = CommonMedicine.objects.values()
     # 统计接口列表数量
-    count = CommonCustomer.objects.count()
+    count = CommonMedicine.objects.count()
     # 将 QuerySet 对象 转化为 list 类型
     # 否则不能 被 转化为 JSON 字符串
     retlist = list(qs)
     return JsonResponse({'ret': 0, 'retlist': retlist, 'total': count})
 
-# 新增客户信息接口
+# 新增药品信息接口
 def addmedicine(request):
 
     info = request.params['data']
-    # 从请求消息中 获取要添加客户的信息
+    # 从请求消息中 获取要添加药品的信息
     # 并且插入到数据库中
     # 返回值 就是对应插入记录的对象
-    record = CommonCustomer.objects.create(name=info['name'],
-                                           phonenumber=info['phonenumber'],
-                                           address=info['address'])
+    record = CommonMedicine.objects.create(name=info['name'],
+                                           desc=info['desc'],
+                                           sn=info['sn'])
     return JsonResponse({'ret': 0, 'id': record.id})
 
-# 修改客户信息接口
+# 修改药品信息接口
 def modifymedicine(request):
     # 从请求消息中 获取修改客户的信息
-    # 找到该客户，并且进行修改操作
-    customerid = request.params['id']
+    # 找到该药品，并且进行修改操作
+    medicineid = request.params['id']
     newdata = request.params['newdata']
-    # 根据 id 从数据库中找到相应的客户记录
-    customer = CommonCustomer.objects.get(id=customerid)
+    # 根据 id 从数据库中找到相应的药品记录
+    medicine = CommonMedicine.objects.get(id=medicineid)
     if 'name' in newdata:
-        customer.name = newdata['name']
-    if 'phonenumber' in newdata:
-        customer.phonenumber = newdata['phonenumber']
-    if 'address' in newdata:
-        customer.address = newdata['address']
+        medicine.name = newdata['name']
+    if 'desc' in newdata:
+        medicine.desc = newdata['desc']
+    if 'sn' in newdata:
+        medicine.sn = newdata['sn']
     # 注意，一定要执行save才能将修改信息保存到数据库
-    customer.save()
+    medicine.save()
     return JsonResponse({'ret': 0})
 
-# 删除客户信息接口
+# 删除药品信息接口
 def deletemedicine(request):
-    # 找到客户id并进行删除
-    customerid = request.params['id']
-    # 根据 id 从数据库中找到相应的客户记录
-    customer = CommonCustomer.objects.get(id=customerid)
+    # 找到药品id并进行删除
+    medicineid = request.params['id']
+    # 根据 id 从数据库中找到相应的药品记录
+    medicine = CommonMedicine.objects.get(id=medicineid)
     # delete 方法就将该记录从数据库中删除了
-    customer.delete()
+    medicine.delete()
     return JsonResponse({'ret': 0})
