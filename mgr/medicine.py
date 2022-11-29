@@ -87,22 +87,27 @@ def listmedicines(request):
     # 否则不能 被 转化为 JSON 字符串
     retlist = list(qs)
     # 默认跳转到第一页
-    page = request.GET.get('pagenum', '1')
+    pagenum = request.GET.get('pagenum', '1')
     # 默认展示10条数据
-    size = request.GET.get('pagesize', '10')
+    pagesize = request.GET.get('pagesize', '10')
 
-    page_obj = Paginator(retlist, size)
-    page_data = page_obj.get_page(page)
+    page_obj = Paginator(retlist, pagesize)
+    page_data = page_obj.get_page(pagenum)
     res = page_data.object_list
     # 获取列表长度
     count = len(res)
     # 统计数据库有多少条数据
-    maxsize = CommonMedicine.objects.count()
-    pagesize = request.params['pagesize']
-    if int(pagesize) <= int(maxsize):
-        return JsonResponse({'ret': 0, 'retlist': res, 'total': count})
+    maxpagesize = CommonMedicine.objects.count()
+    # 获取最大页码数
+    maxpagenum = Paginator(retlist, pagesize).num_pages
+
+    if int(pagesize) <= 10:
+        if int(pagenum) <= int(maxpagenum):
+            return JsonResponse({'ret': 0, 'retlist': res, 'total': count})
+        else:
+            return JsonResponse({'ret': 4, 'msg': f'参数错误,当前页面最大为{maxpagenum}'})
     else:
-        return JsonResponse({'ret': 4, 'msg': f'参数错误,当前最大数量为{count}'})
+        return JsonResponse({'ret': 4, 'msg': f'参数错误,当前页最多展示10条数据'})
 
 
 # 新增药品信息接口
