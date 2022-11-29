@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from common.models import CommonCustomer
+from django.db import connection
 from django.core.paginator import Paginator
 import json
 
@@ -80,11 +80,14 @@ def dispatcher(request):
 
 # 获取所有客户信息接口
 def listcustomers(request):
-    # 返回一个 QuerySet 对象 ，包含所有的表记录
-    qs = CommonCustomer.objects.values()
-    # 将 QuerySet 对象 转化为 list 类型
-    # 否则不能 被 转化为 JSON 字符串
-    retlist = list(qs)
+    cursur = connection.cursor()
+    # 使用 execute()  方法执行 SQL 查询
+    cursur.execute("SELECT * FROM `common_customer`")
+    # 使用 fetchone() 方法获取单条数据.
+    data = cursur.fetchall()
+    # 关闭数据库连接
+    cursur.close()
+    retlist = list(data)
     # 默认跳转到第一页
     pagenum = request.GET.get('pagenum','1')
     # 默认一页展示10条数据
@@ -95,8 +98,6 @@ def listcustomers(request):
     res = page_data.object_list
     # 获取列表长度
     count = len(res)
-    # 统计数据库有多少条数据
-    maxpagesize = CommonCustomer.objects.count()
     # 获取最大页码数
     maxpagenum = Paginator(retlist, pagesize).num_pages
 

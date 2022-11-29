@@ -97,6 +97,16 @@ DATABASES = {
     }
 }
 
+#连接数据库
+# db = pymysql.connect(
+#                         host='120.27.194.53',         # 远程服务器ip地址
+#                         user='root',                  # mysql数据库的用户名
+#                         password='123456',            # mysql数据库的密码
+#                         port=3306,                    # 端口，默认为3306
+#                         database='byhycrm'            # 数据库名称
+#                         # charset='utf8'              # 字符编码
+#                     )
+
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
