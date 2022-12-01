@@ -35,9 +35,10 @@ def dispatcher(request):
     action = request.params['action']
     if action == 'list_order':
         return listorders(request)
-    if action == 'add_order':
+    elif action == 'add_order':
         return addorder(request)
-
+    elif action == 'delete_order':
+        return deleteorder(request)
 
 # 获取所有订单接口
 def listorders(request):

@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.db import connection
 from django.core.paginator import Paginator
+from common.models import CommonCustomer
 import json
 
 def dispatcher(request):
@@ -37,53 +38,62 @@ def dispatcher(request):
         return listcustomers(request)
 
     elif action == 'add_customer':
-        # 获取客户name来判断客户是否存在
-        Cname = request.params['data']['name']
-        Cnames = []
-        for name in CommonCustomer.objects.values('name'):
-            for key,value in name.items():
-                Cnames.append(value)
-        if Cname not in Cnames:
+        # 根据客名来判断客户是否存在
+        cname = request.params['data']['name']
+        cursur = connection.cursor()
+        cursur.execute("SELECT id,name FROM `common_customer`")
+        data = dict(cursur.fetchall())
+        # 关闭数据库连接
+        cursur.close()
+        names = []
+        for id,name in data.items():
+            names.append(name)
+        if cname not in names:
             return addcustomer(request)
         else:
-            return JsonResponse({"ret": 3,"msg": "客户名名已经存在"})
+            return JsonResponse({"ret": 3, "msg": "客户名已经存在"})
 
     elif action == 'modify_customer':
-        # 获取客户id来判断客户是否存在
-        Cid = request.params['id']
-        Cname = request.params['newdata']['name']
-        Customers = []
-        for newdata in CommonCustomer.objects.values():
-            for key, value in newdata.items():
-                Customers.append(value)
-        if Cid in Customers:
-            if Cname not in Customers:
+        # 获取客户名来判断客户是否存在
+        cid = request.params['id']
+        cname = request.params['newdata']['name']
+        # 获取游标对象
+        cursur = connection.cursor()
+        cursur.execute("SELECT id,name FROM `common_customer`")
+        data = dict(cursur.fetchall())
+        # 关闭数据库连接
+        cursur.close()
+        names = []
+        for id, name in data.items():
+            names.append(name)
+        if cid in data:
+            if cname not in names:
                 return modifycustomer(request)
             else:
                 return JsonResponse({'ret': 3, 'msg': '客户名已经存在'})
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{cid}的客户名不存在'})
 
     elif action == 'del_customer':
         # 获取客户id来判断客户是否存在
-        Cid = request.params['id']
-        Cids = []
-        for id in CommonCustomer.objects.values('id'):
-            for key, value in id.items():
-                Cids.append(value)
-        if Cid in Cids:
+        cid = request.params['id']
+        cursur = connection.cursor()
+        cursur.execute("SELECT id,name FROM `common_customer`")
+        data = dict(cursur.fetchall())
+        if cid in data:
             return deletecustomer(request)
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Cid}的客户名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{cid}的客户名不存在'})
     else:
         return JsonResponse({'ret': 1, 'msg': '参数错误'})
 
 # 获取所有客户信息接口
 def listcustomers(request):
+    # 获取游标对象
     cursur = connection.cursor()
     # 使用 execute()  方法执行 SQL 查询
-    cursur.execute("SELECT * FROM `common_customer`")
-    # 使用 fetchone() 方法获取单条数据.
+    cursur.execute("SELECT * FROM common_customer")
+    # 使用 fetchone() 方法获取所有数据.
     data = cursur.fetchall()
     # 关闭数据库连接
     cursur.close()
@@ -111,32 +121,36 @@ def listcustomers(request):
 
 # 新增客户信息接口
 def addcustomer(request):
-
-    info = request.params['data']
     # 从请求消息中 获取要添加客户的信息
     # 并且插入到数据库中
     # 返回值 就是对应插入记录的对象
-    record = CommonCustomer.objects.create(name=info['name'],
-                            phonenumber=info['phonenumber'],
-                            address=info['address'])
-    return JsonResponse({'ret':0,'id':record.id})
+    cname = request.params['data']['name']
+    cphonenumber = request.params['data']['phonenumber']
+    caddress = request.params['data']['address']
+    cursur = connection.cursor()
+    isql = "insert into common_customer(name,phonenumber,address)values(%s,%s,%s)"
+    # 使用 execute()  方法执行 SQL 查询
+    cursur.execute(isql,(cname, cphonenumber, caddress))
+    # 获取游标对象
+    cursur = connection.cursor()
+    cursur.execute("select id from common_customer order by id desc limit 1 ")
+    data=cursur.fetchall()
+    cursur.close()
+    return JsonResponse({'ret':0,'id':(data[0][0])})
 
 # 修改客户信息接口
 def modifycustomer(request):
-    # 从请求消息中 获取修改客户的信息
+    # 从请求消息中 获取修改客户的对应信息
     # 找到该客户，并且进行修改操作
     customerid = request.params['id']
-    newdata = request.params['newdata']
+    cname = request.params['newdata']['name']
+    cphonenumber = request.params['newdata']['phonenumber']
+    caddress = request.params['newdata']['address']
     # 根据 id 从数据库中找到相应的客户记录
-    customer = CommonCustomer.objects.get(id=customerid)
-    if 'name' in newdata:
-        customer.name = newdata['name']
-    if 'phonenumber' in newdata:
-        customer.phonenumber = newdata['phonenumber']
-    if 'address' in newdata:
-        customer.address = newdata['address']
-    # 注意，一定要执行save才能将修改信息保存到数据库
-    customer.save()
+    cursur = connection.cursor()
+    msql = "update common_customer set name = %s,phonenumber = %s,address = %s where id = %s"
+    cursur.execute(msql,(cname,cphonenumber,caddress,customerid))
+    cursur.close()
     return JsonResponse({'ret':0})
 
 # 删除客户信息接口
@@ -144,8 +158,11 @@ def deletecustomer(request):
     # 找到客户id并进行删除
     customerid = request.params['id']
     # 根据 id 从数据库中找到相应的客户记录
-    customer = CommonCustomer.objects.get(id=customerid)
+    cursur = connection.cursor()
     # delete 方法就将该记录从数据库中删除了
-    customer.delete()
+    dsql = "delete from common_customer where id = %s"
+    cursur.execute(dsql,(customerid))
+    cursur.close()
     return JsonResponse({'ret':0})
+
 
