@@ -38,66 +38,83 @@ def dispatcher(request):
         return listmedicines(request)
 
     elif action == 'add_medicine':
-        # 获取药品name来判断药品是否存在
-        Cname = request.params['data']['name']
-        Cnames = []
-        for name in CommonMedicine.objects.values('name'):
-            for key, value in name.items():
-                Cnames.append(value)
-        if Cname not in Cnames:
+        # 根据药品名来判断客户是否存在
+        mname = request.params['data']['name']
+        cursur = connection.cursor()
+        cursur.execute("SELECT id,name FROM `common_medicine`")
+        data = dict(cursur.fetchall())
+        # 关闭数据库连接
+        cursur.close()
+        names = []
+        for id, name in data.items():
+            names.append(name)
+        if mname not in names:
             return addmedicine(request)
         else:
             return JsonResponse({"ret": 3, "msg": "药品名已经存在"})
 
     elif action == 'modify_medicine':
         # 获取药品id来判断药品是否存在
-        Mid = request.params['id']
-        Mname = request.params['newdata']['name']
-        Medicines = []
-        for newdata in CommonMedicine.objects.values():
-            for key, value in newdata.items():
-                Medicines.append(value)
-        if Mid in Medicines:
-            if Mname not in  Medicines:
+        mid = request.params['id']
+        mname = request.params['newdata']['name']
+        # 获取游标对象
+        cursur = connection.cursor()
+        cursur.execute("SELECT id,name FROM `common_medicine`")
+        data = dict(cursur.fetchall())
+        print(data)
+        # 关闭数据库连接
+        cursur.close()
+        names = []
+        for id,name in data.items():
+            names.append(name)
+        if mid in data:
+            if mname not in names:
                 return modifymedicine(request)
             else:
                 return JsonResponse({'ret': 3, 'msg':'药品名已经存在'})
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Mid}的药品名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{mid}的药品名不存在'})
 
     elif action == 'del_medicine':
-        # 获取药品id来判断客户是否存在
-        Mid = request.params['id']
-        Mids = []
-        for id in CommonMedicine.objects.values('id'):
-            for key, value in id.items():
-                Mids.append(value)
-        if Mid in Mids:
+        # 获取药品id来判断药品是否存在
+        mid = request.params['id']
+        cursur = connection.cursor()
+        cursur.execute("SELECT id,name FROM `common_medicine`")
+        data = dict(cursur.fetchall())
+        if mid in data:
             return deletemedicine(request)
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{Mid}的药品名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{mid}的药品名不存在'})
     else:
         return JsonResponse({'ret': 1, 'msg': '参数错误'})
 
 # 获取所有药品信息接口
 def listmedicines(request):
+    # 获取游标对象
     cursur = connection.cursor()
     # 使用 execute()  方法执行 SQL 查询
-    cursur.execute("SELECT * FROM `common_medicine`")
-    # 使用 fetchone() 方法获取单条数据.
+    cursur.execute("SELECT * FROM common_medicine")
+    # 使用 fetchone() 方法获取所有数据.
     data = cursur.fetchall()
     # 关闭数据库连接
     cursur.close()
-    retlist = list(data)
+    infodict = {}
+    retlist = []
+    for info in data:
+        infodict['id'] = info[0]
+        infodict['name'] = info[1]
+        infodict['phonenumber'] = info[2]
+        infodict['address'] = info[3]
+        retlist.append(infodict)
     # 默认跳转到第一页
     pagenum = request.GET.get('pagenum', '1')
-    # 默认展示10条数据
+    # 默认一页展示10条数据
     pagesize = request.GET.get('pagesize', '10')
 
     page_obj = Paginator(retlist, pagesize)
     page_data = page_obj.get_page(pagenum)
     res = page_data.object_list
-    # 获取列表长度
+    # # 获取列表长度
     count = len(res)
     # 获取最大页码数
     maxpagenum = Paginator(retlist, pagesize).num_pages
@@ -110,43 +127,48 @@ def listmedicines(request):
     else:
         return JsonResponse({'ret': 4, 'msg': f'参数错误,当前页最多展示10条数据'})
 
-
 # 新增药品信息接口
 def addmedicine(request):
-
-    info = request.params['data']
     # 从请求消息中 获取要添加药品的信息
     # 并且插入到数据库中
     # 返回值 就是对应插入记录的对象
-    record = CommonMedicine.objects.create(name=info['name'],
-                                           desc=info['desc'],
-                                           sn=info['sn'])
-    return JsonResponse({'ret': 0, 'id': record.id})
+    mname = request.params['data']['name']
+    msn = request.params['data']['sn']
+    mdesc = request.params['data']['desc']
+    cursur = connection.cursor()
+    isql = "insert into common_medicine(name,sn,description)values(%s,%s,%s)"
+    # 使用 execute()  方法执行 SQL 查询
+    cursur.execute(isql, (mname, msn, mdesc))
+    # 获取游标对象
+    cursur = connection.cursor()
+    cursur.execute("select id from common_medicine order by id desc limit 1 ")
+    data = cursur.fetchall()
+    cursur.close()
+    return JsonResponse({'ret': 0, 'id': (data[0][0])})
 
 # 修改药品信息接口
 def modifymedicine(request):
-    # 从请求消息中 获取修改客户的信息
-    # 找到该药品，并且进行修改操作
-    medicineid = request.params['id']
-    newdata = request.params['newdata']
+    # 从请求消息中 获取修改药品的对应信息
+    # 找到该客户，并且进行修改操作
+    mustomerid = request.params['id']
+    mname = request.params['newdata']['name']
+    msn = request.params['newdata']['sn']
+    mdescription = request.params['newdata']['description']
     # 根据 id 从数据库中找到相应的药品记录
-    medicine = CommonMedicine.objects.get(id=medicineid)
-    if 'name' in newdata:
-        medicine.name = newdata['name']
-    if 'desc' in newdata:
-        medicine.desc = newdata['desc']
-    if 'sn' in newdata:
-        medicine.sn = newdata['sn']
-    # 注意，一定要执行save才能将修改信息保存到数据库
-    medicine.save()
+    cursur = connection.cursor()
+    msql = "update common_medicine set name = %s,sn = %s,description = %s where id = %s"
+    cursur.execute(msql, (mname, msn, mdescription, mustomerid))
+    cursur.close()
     return JsonResponse({'ret': 0})
 
 # 删除药品信息接口
 def deletemedicine(request):
     # 找到药品id并进行删除
     medicineid = request.params['id']
-    # 根据 id 从数据库中找到相应的药品记录
-    medicine = CommonMedicine.objects.get(id=medicineid)
+    # 根据 id 从数据库中找到相应的客户记录
+    cursur = connection.cursor()
     # delete 方法就将该记录从数据库中删除了
-    medicine.delete()
+    dsql = "delete from common_medicine where id = %s"
+    cursur.execute(dsql, (medicineid))
+    cursur.close()
     return JsonResponse({'ret': 0})

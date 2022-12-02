@@ -1,7 +1,6 @@
 from django.http import JsonResponse
 from django.db import connection
 from django.core.paginator import Paginator
-from common.models import CommonCustomer
 import json
 
 def dispatcher(request):
@@ -20,6 +19,7 @@ def dispatcher(request):
                                'redirect': '/mgr/sign.html'},
                                status=302
                             )
+
     # 将请求参数统一放入request 的 params 属性中，方便后续处理
 
     # GET请求 参数在url中，同过request 对象的 GET属性获取
@@ -97,7 +97,14 @@ def listcustomers(request):
     data = cursur.fetchall()
     # 关闭数据库连接
     cursur.close()
-    retlist = list(data)
+    infodict = {}
+    retlist = []
+    for info in data:
+        infodict['id'] = info[0]
+        infodict['name'] = info[1]
+        infodict['phonenumber'] = info[2]
+        infodict['address'] = info[3]
+        retlist.append(infodict)
     # 默认跳转到第一页
     pagenum = request.GET.get('pagenum','1')
     # 默认一页展示10条数据
@@ -106,7 +113,7 @@ def listcustomers(request):
     page_obj = Paginator(retlist, pagesize)
     page_data = page_obj.get_page(pagenum)
     res = page_data.object_list
-    # 获取列表长度
+    # # 获取列表长度
     count = len(res)
     # 获取最大页码数
     maxpagenum = Paginator(retlist, pagesize).num_pages
