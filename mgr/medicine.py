@@ -38,7 +38,7 @@ def dispatcher(request):
         return listmedicines(request)
 
     elif action == 'add_medicine':
-        # 根据药品名来判断客户是否存在
+        # 根据订单名来判断客户是否存在
         mname = request.params['data']['name']
         cursur = connection.cursor()
         cursur.execute("SELECT id,name FROM `common_medicine`")
@@ -54,7 +54,7 @@ def dispatcher(request):
             return JsonResponse({"ret": 3, "msg": "药品名已经存在"})
 
     elif action == 'modify_medicine':
-        # 获取药品id来判断药品是否存在
+        # 获取订单id来判断药品是否存在
         mid = request.params['id']
         mname = request.params['newdata']['name']
         # 获取游标对象
@@ -71,9 +71,9 @@ def dispatcher(request):
             if mname not in names:
                 return modifymedicine(request)
             else:
-                return JsonResponse({'ret': 3, 'msg':'药品名已经存在'})
+                return JsonResponse({'ret': 3, 'msg':'订单已经存在'})
         else:
-            return JsonResponse({'ret': 2, 'msg': f'id为{mid}的药品名不存在'})
+            return JsonResponse({'ret': 2, 'msg': f'id为{mid}的订单不存在'})
 
     elif action == 'del_medicine':
         # 获取药品id来判断药品是否存在

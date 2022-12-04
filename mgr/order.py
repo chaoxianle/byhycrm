@@ -42,23 +42,31 @@ def dispatcher(request):
 
 # 获取所有订单接口
 def listorders(request):
-    cursur =connection.cursor()
+    # 获取游标对象
+    cursur = connection.cursor()
     # 使用 execute()  方法执行 SQL 查询
-    cursur.execute("SELECT * FROM `common_order`")
-    # 使用 fetchone() 方法获取单条数据.
+    cursur.execute("SELECT * FROM common_customer")
+    # 使用 fetchone() 方法获取所有数据.
     data = cursur.fetchall()
     # 关闭数据库连接
     cursur.close()
-    retlist = list(data)
+    infodict = {}
+    retlist = []
+    for info in data:
+        infodict['id'] = info[0]
+        infodict['name'] = info[1]
+        infodict['phonenumber'] = info[2]
+        infodict['address'] = info[3]
+        retlist.append(infodict)
     # 默认跳转到第一页
-    pagenum = request.GET.get('pagenum','1')
+    pagenum = request.GET.get('pagenum', '1')
     # 默认一页展示10条数据
-    pagesize = request.GET.get('pagesize','10')
+    pagesize = request.GET.get('pagesize', '10')
 
     page_obj = Paginator(retlist, pagesize)
     page_data = page_obj.get_page(pagenum)
     res = page_data.object_list
-    # 获取列表长度
+    # # 获取列表长度
     count = len(res)
     # 获取最大页码数
     maxpagenum = Paginator(retlist, pagesize).num_pages
